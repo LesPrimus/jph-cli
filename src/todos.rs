@@ -9,6 +9,9 @@ pub enum ToDoError {
 
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
+
+    #[error("todo with id {0} not found")]
+    NotFound(i32),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +32,12 @@ impl ToDo {
 
     pub async fn get_by_id(client: &Client, id: i32) -> Result<ToDo, ToDoError> {
         let target = format!("{}/{}", Self::TARGET, id);
-        Ok(client.get(target).send().await?.json().await?)
+        let value: serde_json::Value = client.get(target).send().await?.json().await?;
+        // Handle empty json object
+        if value.as_object().map(|o| o.is_empty()).unwrap_or(false) {
+            return Err(ToDoError::NotFound(id));
+        }
+        Ok(serde_json::from_value(value)?)
     }
 
     pub async fn handle_cli_command(command: TodoCommand, client: &Client) -> Result<(), ToDoError> {
