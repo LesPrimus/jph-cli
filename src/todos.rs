@@ -1,4 +1,3 @@
-use crate::cli::TodoCommand;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -27,9 +26,5 @@ impl ToDo {
     pub async fn get_by_id(client: &Client, id: i32) -> Result<ToDo, ToDoError> {
         let target = format!("{}/{}", Self::TARGET, id);
         Ok(client.get(target).send().await?.json().await?)
-    }
-
-    pub async fn handle_cli_command(command: &TodoCommand, client: &Client) {
-        todo!()
     }
 }
