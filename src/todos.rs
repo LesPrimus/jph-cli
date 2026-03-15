@@ -1,3 +1,4 @@
+use crate::cli::TodoCommand;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -5,6 +6,9 @@ use serde::{Deserialize, Serialize};
 pub enum ToDoError {
     #[error(transparent)]
     Network(#[from] reqwest::Error),
+
+    #[error(transparent)]
+    Serde(#[from] serde_json::Error),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,5 +30,20 @@ impl ToDo {
     pub async fn get_by_id(client: &Client, id: i32) -> Result<ToDo, ToDoError> {
         let target = format!("{}/{}", Self::TARGET, id);
         Ok(client.get(target).send().await?.json().await?)
+    }
+
+    pub async fn handle_cli_command(command: TodoCommand, client: &Client) -> Result<(), ToDoError> {
+        match command {
+            TodoCommand::List => {
+                for todo in Self::get_all(client).await?.iter() {
+                    println!("{}", serde_json::to_string(todo)?);
+                }
+            }
+            TodoCommand::Get { id } => {
+                let todo = Self::get_by_id(client, id).await?;
+                println!("{}", serde_json::to_string(&todo)?)
+            }
+        }
+        Ok(())
     }
 }
