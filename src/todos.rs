@@ -1,4 +1,5 @@
 use crate::cli::{CommandHandler, TodoCommand};
+use crate::errors::AppError;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 
@@ -57,25 +58,25 @@ impl ToDo {
             .await?;
         Ok(response.status())
     }
+
+    pub fn as_json(&self) -> Result<serde_json::Value, ToDoError> {
+        Ok(serde_json::to_value(self)?)
+    }
 }
 
 impl CommandHandler for ToDo {
     type Command = TodoCommand;
-    type Error = ToDoError;
 
-    async fn handle_cli_command(
-        command: Self::Command,
-        client: &Client,
-    ) -> Result<(), Self::Error> {
+    async fn handle_cli_command(command: Self::Command, client: &Client) -> Result<(), AppError> {
         match command {
             TodoCommand::List => {
                 for todo in Self::get_all(client).await?.iter() {
-                    println!("{}", serde_json::to_string(todo)?);
+                    println!("{}", todo.as_json()?);
                 }
             }
             TodoCommand::Get { id } => {
                 let todo = Self::get_by_id(client, id).await?;
-                println!("{}", serde_json::to_string(&todo)?)
+                println!("{}", todo.as_json()?);
             }
             TodoCommand::Create {
                 title,

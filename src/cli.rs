@@ -1,3 +1,4 @@
+use crate::errors::AppError;
 use clap::{Parser, Subcommand};
 use reqwest::Client;
 use std::future::Future;
@@ -13,6 +14,10 @@ pub enum Command {
     Todos {
         #[command(subcommand)]
         command: TodoCommand,
+    },
+    Posts {
+        #[command(subcommand)]
+        command: PostCommand,
     },
 }
 
@@ -30,11 +35,15 @@ pub enum TodoCommand {
     },
 }
 
+#[derive(Subcommand, Debug)]
+pub enum PostCommand {
+    List,
+}
+
 pub trait CommandHandler {
     type Command;
-    type Error;
     fn handle_cli_command(
         command: Self::Command,
         client: &Client,
-    ) -> impl Future<Output = Result<(), Self::Error>>;
+    ) -> impl Future<Output = Result<(), AppError>>;
 }
