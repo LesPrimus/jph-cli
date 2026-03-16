@@ -9,6 +9,7 @@ path = "test/posts_test.rs"
 
 [dev-dependencies]
 mockito = "1"
+rstest = "0.26.1"
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
