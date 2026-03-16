@@ -38,6 +38,7 @@ pub enum TodoCommand {
 #[derive(Subcommand, Debug)]
 pub enum PostCommand {
     List,
+    Get { id: i32 },
 }
 
 pub trait CommandHandler {
@@ -46,5 +47,5 @@ pub trait CommandHandler {
     fn handle_cli_command(
         command: Self::Command,
         client: &Client,
-    ) -> impl Future<Output=Result<(), AppError>>;
+    ) -> impl Future<Output = Result<(), AppError>>;
 }
