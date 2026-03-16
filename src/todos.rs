@@ -1,5 +1,5 @@
 use crate::cli::{CommandHandler, TodoCommand};
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
@@ -39,13 +39,34 @@ impl ToDo {
         }
         Ok(serde_json::from_value(value)?)
     }
+
+    pub async fn create(
+        title: String,
+        user_id: i32,
+        completed: bool,
+        client: &Client,
+    ) -> Result<StatusCode, ToDoError> {
+        let response = client
+            .post(Self::TARGET)
+            .json(&serde_json::json!({
+                "title": title,
+                "userId": user_id,
+                "completed": completed,
+            }))
+            .send()
+            .await?;
+        Ok(response.status())
+    }
 }
 
 impl CommandHandler for ToDo {
     type Command = TodoCommand;
     type Error = ToDoError;
 
-    async fn handle_cli_command(command: Self::Command, client: &Client) -> Result<(), Self::Error> {
+    async fn handle_cli_command(
+        command: Self::Command,
+        client: &Client,
+    ) -> Result<(), Self::Error> {
         match command {
             TodoCommand::List => {
                 for todo in Self::get_all(client).await?.iter() {
@@ -55,6 +76,14 @@ impl CommandHandler for ToDo {
             TodoCommand::Get { id } => {
                 let todo = Self::get_by_id(client, id).await?;
                 println!("{}", serde_json::to_string(&todo)?)
+            }
+            TodoCommand::Create {
+                title,
+                user_id,
+                completed,
+            } => {
+                let response_status = Self::create(title, user_id, completed, client).await?;
+                println!("{}", response_status);
             }
         }
         Ok(())
