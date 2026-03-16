@@ -19,5 +19,7 @@ async fn test_get_all_returns_posts() {
     let posts = Post::get_all(&client, &url).await.unwrap();
 
     assert_eq!(posts.len(), 1);
+    let expected_post = Post::new(1, "foo".into(), "bar".into(), 1);
+    assert_eq!(posts.get(0).unwrap(), &expected_post);
     mock.assert();
 }

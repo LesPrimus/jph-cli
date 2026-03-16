@@ -11,7 +11,7 @@ pub enum PostsError {
     Serde(#[from] serde_json::Error),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Post {
     id: i32,
@@ -21,6 +21,10 @@ pub struct Post {
 }
 
 impl Post {
+    pub fn new(id: i32, title: String, body: String, user_id: i32) -> Self {
+        Self { id, title, body, user_id }
+    }
+
     pub async fn get_all(client: &reqwest::Client, url: &str) -> Result<Vec<Post>, PostsError> {
         Ok(client.get(url).send().await?.json().await?)
     }
