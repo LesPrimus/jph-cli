@@ -12,7 +12,7 @@ pub enum ToDoError {
     Serde(#[from] serde_json::Error),
 
     #[error("todo with id {0} not found")]
-    NotFound(i32),
+    NotFound(String),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,18 +25,17 @@ pub struct ToDo {
 }
 
 impl ToDo {
-    const TARGET: &str = "https://jsonplaceholder.typicode.com/todos";
+    // const TARGET: &str = "https://jsonplaceholder.typicode.com/todos";
 
-    pub async fn get_all(client: &Client) -> Result<Vec<ToDo>, ToDoError> {
-        Ok(client.get(Self::TARGET).send().await?.json().await?)
+    pub async fn get_all(client: &Client, url: &str) -> Result<Vec<ToDo>, ToDoError> {
+        Ok(client.get(url).send().await?.json().await?)
     }
 
-    pub async fn get_by_id(client: &Client, id: i32) -> Result<ToDo, ToDoError> {
-        let target = format!("{}/{}", Self::TARGET, id);
-        let value: serde_json::Value = client.get(target).send().await?.json().await?;
+    pub async fn get_by_id(client: &Client, url: &str) -> Result<ToDo, ToDoError> {
+        let value: serde_json::Value = client.get(url).send().await?.json().await?;
         // Handle empty json object
         if value.as_object().map(|o| o.is_empty()).unwrap_or(false) {
-            return Err(ToDoError::NotFound(id));
+            return Err(ToDoError::NotFound(url.into()));
         }
         Ok(serde_json::from_value(value)?)
     }
@@ -46,9 +45,10 @@ impl ToDo {
         user_id: i32,
         completed: bool,
         client: &Client,
+        url: &str,
     ) -> Result<StatusCode, ToDoError> {
         let response = client
-            .post(Self::TARGET)
+            .post(url)
             .json(&serde_json::json!({
                 "title": title,
                 "userId": user_id,
@@ -66,16 +66,18 @@ impl ToDo {
 
 impl CommandHandler for ToDo {
     type Command = TodoCommand;
+    const TARGET: &str = "https://jsonplaceholder.typicode.com/todos";
 
     async fn handle_cli_command(command: Self::Command, client: &Client) -> Result<(), AppError> {
         match command {
             TodoCommand::List => {
-                for todo in Self::get_all(client).await?.iter() {
+                for todo in Self::get_all(client, Self::TARGET).await?.iter() {
                     println!("{}", todo.as_json()?);
                 }
             }
             TodoCommand::Get { id } => {
-                let todo = Self::get_by_id(client, id).await?;
+                let url = format!("{}/{}", Self::TARGET, id);
+                let todo = Self::get_by_id(client, &url).await?;
                 println!("{}", todo.as_json()?);
             }
             TodoCommand::Create {
@@ -83,7 +85,7 @@ impl CommandHandler for ToDo {
                 user_id,
                 completed,
             } => {
-                let response_status = Self::create(title, user_id, completed, client).await?;
+                let response_status = Self::create(title, user_id, completed, client, Self::TARGET).await?;
                 println!("{}", response_status);
             }
         }

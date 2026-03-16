@@ -1,13 +1,9 @@
 use clap::Parser;
-
-pub mod cli;
-pub mod errors;
-pub mod posts;
-pub mod todos;
+use jph_cli::cli::*;
+use jph_cli::{posts, todos};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use cli::*;
 
     let cli = Cli::parse();
     let client = reqwest::Client::new();

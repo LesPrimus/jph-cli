@@ -12,6 +12,7 @@ pub enum PostsError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Post {
     id: i32,
     title: String,
@@ -20,10 +21,8 @@ pub struct Post {
 }
 
 impl Post {
-    const TARGET: &str = "https://jsonplaceholder.typicode.com/posts";
-
-    pub async fn get_all(client: &reqwest::Client) -> Result<Vec<Post>, PostsError> {
-        Ok(client.get(Self::TARGET).send().await?.json().await?)
+    pub async fn get_all(client: &reqwest::Client, url: &str) -> Result<Vec<Post>, PostsError> {
+        Ok(client.get(url).send().await?.json().await?)
     }
 
     pub fn as_json(&self) -> Result<serde_json::Value, PostsError> {
@@ -33,6 +32,7 @@ impl Post {
 
 impl CommandHandler for Post {
     type Command = PostCommand;
+    const TARGET: &str = "https://jsonplaceholder.typicode.com/posts";
 
     async fn handle_cli_command(
         command: Self::Command,
@@ -40,7 +40,7 @@ impl CommandHandler for Post {
     ) -> Result<(), AppError> {
         match command {
             PostCommand::List => {
-                for post in Self::get_all(client).await?.iter() {
+                for post in Self::get_all(client, Self::TARGET).await?.iter() {
                     println!("{}", post.as_json()?);
                 }
             }

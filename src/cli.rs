@@ -42,8 +42,9 @@ pub enum PostCommand {
 
 pub trait CommandHandler {
     type Command;
+    const TARGET: &str;
     fn handle_cli_command(
         command: Self::Command,
         client: &Client,
-    ) -> impl Future<Output = Result<(), AppError>>;
+    ) -> impl Future<Output=Result<(), AppError>>;
 }
