@@ -6,9 +6,10 @@ use rstest::rstest;
 
 #[rstest]
 #[tokio::test]
-async fn test_get_all_returns_posts(client: reqwest::Client, #[future(
-    awt
-)] mut server: mockito::ServerGuard) {
+async fn test_get_all_returns_posts(
+    client: reqwest::Client,
+    #[future(awt)] mut server: mockito::ServerGuard,
+) {
     let mock = server
         .mock("GET", "/posts")
         .with_status(200)
@@ -28,10 +29,32 @@ async fn test_get_all_returns_posts(client: reqwest::Client, #[future(
 
 #[rstest]
 #[tokio::test]
-async fn test_get_all_on_500_server_returns_error(client: reqwest::Client, #[future(
-    awt
-)] mut server: mockito::ServerGuard) {
-    server.mock("GET", "/posts").with_status(500).create_async().await;
+async fn test_get_by_id(client: reqwest::Client, #[future(awt)] mut server: mockito::ServerGuard) {
+    let mock = server
+        .mock("GET", "/posts/1")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"id":1,"title":"foo","body":"bar","userId":1}"#)
+        .create_async()
+        .await;
+
+    let url = format!("{}/posts/1", server.url());
+    let post = Post::get_by_id(&client, &url).await.unwrap();
+    assert_eq!(post, Post::new(1, "foo".into(), "bar".into(), 1));
+    mock.assert();
+}
+
+#[rstest]
+#[tokio::test]
+async fn test_get_all_on_500_server_returns_error(
+    client: reqwest::Client,
+    #[future(awt)] mut server: mockito::ServerGuard,
+) {
+    server
+        .mock("GET", "/posts")
+        .with_status(500)
+        .create_async()
+        .await;
     let url = format!("{}/posts", server.url());
     let posts = Post::get_all(&client, &url).await;
     assert!(posts.is_err());
@@ -39,9 +62,10 @@ async fn test_get_all_on_500_server_returns_error(client: reqwest::Client, #[fut
 
 #[rstest]
 #[tokio::test]
-async fn test_get_all_returns_empty_vec_on_error(client: reqwest::Client, #[future(
-    awt
-)] mut server: mockito::ServerGuard) {
+async fn test_get_all_returns_empty_vec_on_error(
+    client: reqwest::Client,
+    #[future(awt)] mut server: mockito::ServerGuard,
+) {
     let mock = server.mock("GET", "/posts").create_async().await;
     let url = format!("{}/posts", server.url());
     let posts = Post::get_all(&client, &url).await;
@@ -53,5 +77,8 @@ async fn test_get_all_returns_empty_vec_on_error(client: reqwest::Client, #[futu
 fn test_as_json_returns_json_value() {
     let post = Post::new(1, "foo".into(), "bar".into(), 1);
     let json = post.as_json().unwrap();
-    assert_eq!(json, serde_json::json!({"id":1,"title":"foo","body":"bar","userId":1}));
+    assert_eq!(
+        json,
+        serde_json::json!({"id":1,"title":"foo","body":"bar","userId":1})
+    );
 }
